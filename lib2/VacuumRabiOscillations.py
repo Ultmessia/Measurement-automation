@@ -4,12 +4,9 @@ from lib2.VNATimeResolvedDispersiveMeasurement1D import *
 
 class VacuumRabiOscillations(VNATimeResolvedDispersiveMeasurement1D):
 
-    def __init__(self, name, sample_name,
-                 plot_update_interval=1, **devs_aliases_map):
-        super().__init__(name, sample_name, devs_aliases_map,
-                         plot_update_interval)
-        self._measurement_result = VacuumRabiOscillationsResult(name,
-                                                                sample_name)
+    def __init__(self, name, sample_name, **devs_aliases_map):
+        super().__init__(name, sample_name, devs_aliases_map)
+        self._measurement_result = VacuumRabiOscillationsResult(name, sample_name)
         self._sequence_generator = \
             IQPulseBuilder.build_vacuum_rabi_oscillations_sequences
         self._swept_parameter_name = "interaction_duration"

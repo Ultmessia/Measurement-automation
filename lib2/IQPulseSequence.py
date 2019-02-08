@@ -147,7 +147,7 @@ class PulseBuilder():
         params: float, volts
             Array of a_n's
         """
-        offset = self._calibration["zero_offset"] + offset_voltage
+        # offset = self._calibration["zero_offset"] + offset_voltage
         N_time_steps = int(round(duration / self._waveform_resolution))
 
         X = linspace(0, duration, N_time_steps + 1)
@@ -965,7 +965,7 @@ class IQPulseBuilder():
         z_pulse_offset_voltage = \
             pulse_sequence_parameters["z_pulse_offset_voltage"]         # TODO name
         z_pulse_duration = \
-            pulse_sequence_parameters["z_pulse_duration"]               # TODO name
+            pulse_sequence_parameters["interaction_duration"]               # TODO name
         cz_shape_params = \
             pulse_sequence_parameters["cz_shape_params"] \
             if 'cz_shape_param' in pulse_sequence_parameters else [1]

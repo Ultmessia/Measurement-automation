@@ -951,8 +951,8 @@ class IQPulseBuilder():
             pulse_sequence_parameters["readout_duration"]
         repetition_period = \
             pulse_sequence_parameters["repetition_period"]
-        pi_pulse_duration = \
-            pulse_sequence_parameters["pi_pulse_duration"]
+        pi_pulse_durations = \
+            pulse_sequence_parameters["pi_pulse_duration"]                  # TODO multiple qubits
         window = \
             pulse_sequence_parameters["modulating_window"]
         pi_pulse_delay = \
@@ -963,21 +963,28 @@ class IQPulseBuilder():
             pulse_sequence_parameters["z_smoothing_coefficient"]
 
         z_pulse_offset_voltage = \
-            pulse_sequence_parameters["z_pulse_offset_voltage"]         # TODO name
+            pulse_sequence_parameters["z_pulse_offset_voltage"]             # TODO name
         z_pulse_duration = \
             pulse_sequence_parameters["interaction_duration"]               # TODO name
         cz_shape_params = \
             pulse_sequence_parameters["cz_shape_params"] \
             if 'cz_shape_param' in pulse_sequence_parameters else [1]
-        exc_pb = pbs['q_pbs'][0]
+        exc_pbs = pbs['q_pbs']
+
         ro_pb = pbs['ro_pbs'][0]
         z_pb = pbs['q_z_pbs'][0]
 
         z_wait = abs(pi_pulse_delay) if pi_pulse_delay < 0 else 0
         exc_wait = abs(pi_pulse_delay) if pi_pulse_delay > 0 else 0
 
-        exc_pb.add_zero_pulse(awg_trigger_reaction_delay + exc_wait) \
-            .add_sine_pulse(pi_pulse_duration, 0,
+        exc_pbs[0].add_zero_pulse(awg_trigger_reaction_delay + exc_wait) \
+            .add_sine_pulse(pi_pulse_durations[0], 0,
+                            amplitude=amplitude, window=window) \
+            .add_zero_pulse(readout_duration) \
+            .add_zero_until(repetition_period)
+
+        exc_pbs[1].add_zero_pulse(awg_trigger_reaction_delay + exc_wait) \
+            .add_sine_pulse(pi_pulse_durations[1], 0,
                             amplitude=amplitude, window=window) \
             .add_zero_pulse(readout_duration) \
             .add_zero_until(repetition_period)
@@ -987,12 +994,12 @@ class IQPulseBuilder():
                           *cz_shape_params) \
             .add_zero_until(repetition_period)
 
-        ro_pb.add_zero_pulse(max(pi_pulse_duration, z_pulse_duration)
+        ro_pb.add_zero_pulse(max(pi_pulse_durations[0], pi_pulse_durations[1], z_pulse_duration)
                              + abs(pi_pulse_delay) + 10) \
             .add_dc_pulse(readout_duration) \
             .add_zero_until(repetition_period)
 
-        return {'q_seqs': [exc_pb.build()],
+        return {'q_seqs': [exc_pbs[0].build(), exc_pbs[1].build()],
                 'q_z_seq': [z_pb.build()],
                 'ro_seqs': [ro_pb.build()]}
 

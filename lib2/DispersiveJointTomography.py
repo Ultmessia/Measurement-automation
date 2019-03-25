@@ -85,6 +85,16 @@ class Tomo:
         self._measurements = [(rot.dag() * self._measurement_operator * rot, res)
                                 for (rot, res) in zip(self._local_rotations, measurement_results)]
 
+    def construct_measurements_from_matrix(self, dens_matrix):
+        """
+        Construct measurement sequence required for reconstruction
+        Tomo.upload_rotation_sequence_from_command_list() and Tomo.upload_measurement_operator must be uploaded
+        :param dens_matrix: density matrix to construct measurement outcomes
+        """
+        self._measurements = [(rot.dag() * self._measurement_operator * rot,
+                               expect(dens_matrix, rot.dag() * self._measurement_operator * rot))
+                              for rot in self._local_rotations]
+
     def upload_measurements(self, meas):            # Загрузить набор измерений [(оператор, измеренное. среднее), ...]
         """
         Measurement sequence can be uploaded manually
@@ -171,8 +181,8 @@ class DispersiveJointTomographyResult(VNATimeResolvedDispersiveMeasurementResult
             .get_pulse_sequence_parameters()
         self._betas = (0, 0, 0, 0)
 
-    def upload_local_rotations(self, _local_rotations_list):
-        self._local_rotations_list = []
+    def upload_local_rotations(self, local_rotations_list):
+        self._local_rotations_list = local_rotations_list
 
     def upload_betas(self, *betas):
         self._betas = betas
@@ -186,11 +196,30 @@ class DispersiveJointTomographyResult(VNATimeResolvedDispersiveMeasurementResult
 
         tomo = Tomo(dim=4)
         tomo.upload_measurement_operator(joint_op)
-        tomo.upload_rotation_sequence_from_command_list(self._local_rotations_list)  #TODO
+        tomo.upload_rotation_sequence_from_command_list(self._local_rotations_list)
 
-        res = self.get_data()['data']                                                   #TODO
+        res = self.get_data()['data']
         tomo.construct_measurements(res)
         return tomo.find_rho()
+
+    def find_density_matrix_sim(self, dens_matrix):
+        """
+        For simulations:
+            Constructs measurement outcomes based on the matrix given
+        :param dens_matrix: density matrix to construct measurement outcomes
+        """
+        beta_II, beta_ZI, beta_IZ, beta_ZZ = self._betas
+        joint_op = (beta_II * tensor(identity(2), identity(2)) +
+                    beta_ZI * tensor(sigmaz(), identity(2)) +
+                    beta_IZ * tensor(identity(2), sigmaz()) +
+                    beta_ZZ * tensor(sigmaz(), sigmaz()))
+
+        self._tomo = Tomo(dim=4)
+        self._tomo.upload_measurement_operator(joint_op)
+        self._tomo.upload_rotation_sequence_from_command_list(self._local_rotations_list)
+
+        self._tomo.construct_measurements_from_matrix(dens_matrix)
+        return self._tomo.find_rho()
 
     def _prepare_figure(self):
         fig, axes = plt.subplots(1, 2, figsize=(15, 7), sharex=True)
